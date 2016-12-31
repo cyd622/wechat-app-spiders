@@ -1,0 +1,6 @@
+{
+    "require": {
+        "qiniu/php-sdk": "^7.1",
+        "catfan/Medoo": "^1.1"
+    }
+}
