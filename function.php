@@ -90,7 +90,27 @@ function isutf8($word)
         return false;
     }
 }
+function get_content_array($str, $start, $end, $option = 0)
+{
+    $start_h = $this->str_zz($start);
+    $end_h = $this->str_zz($end);
+    preg_match_all('/' . $start_h . '(.+?)' . $end_h . '/is', $str, $match);
 
+    $count = count($match[1]);
+    for ($i = 0; $i < $count; $i++) {
+
+        if ($option == 1) {
+            $arr[$i] = $match[1][$i];
+        } else if ($option == 2) {
+            $arr[$i] = $start . $match[1][$i];
+        } else if ($option == 3) {
+            $arr[$i] = $match[1][$i] . $end;
+        } else {
+            $arr[$i] = $start . $match[1][$i] . $end;
+        }
+    }
+    return $arr;
+}
 
 function dir_path($path)
 {
