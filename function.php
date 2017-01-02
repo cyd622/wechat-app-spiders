@@ -133,4 +133,23 @@ function dir_list($path, $exts = '', $list = array())
         }
     }
     return $list;
-} 
+}
+function files_list($path, $exts = '', $list = array(),$type=1)
+{
+    $path = dir_path($path);
+    $files = glob($path . '*');
+    foreach ($files as $k=>$v) {
+        if (!$exts || preg_match("/\.($exts)/i", $v)) {
+            //$v = iconv('GB2312','UTF-8',$v);
+            $list[$k]['path'] = $v;
+            if($type==1)
+                $list[$k]['filename'] = basename($v);
+            elseif($type==2)
+                $list[$k]['filename'] = basename($v,'.'.$exts);
+            if (is_dir($v)) {
+                $list[$k]['path']  = dir_list($v, $exts, $list);
+            }
+        }
+    }
+    return $list;
+}

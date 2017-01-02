@@ -39,11 +39,14 @@ class Caiji
         /*$url = 'http://media.ifanrusercontent.com/media/user_files/trochili/ad/07/ad07087fa027a86abf9402a3534259e6abadb792-3de1c6ad0258927562f01bdef5b470dc475cbbbb.jpg';
         $sat = $this->upImg2Qin($url);
         print_r($sat);*/
-        $this->getArticleList();
+        $this->file2DB();
 
     }
 
-    private function getApplist()
+    /**
+     * 采集知晓程序app列表
+     */
+    private function getApp()
     {
         $app_list = huoduan_get_html($this->app_url);
         $data_list = json_decode($app_list, 1);
@@ -61,6 +64,8 @@ class Caiji
                 $wxapps['status'] = 1;
                 $wxapp_icons['image'] = $this->upImg2Qin($value['icon']['image']);
                 $wxapp_qrcodes['image'] = $this->upImg2Qin($value['qrcode']['image'], null, 'qrcode');
+                $wxapp_qrcodes['created_at'] = date('Y-m-d H:I:s');
+                $wxapp_qrcodes['updated_at'] = date('Y-m-d H:I:s');
                 $wxapp_id = $this->db->insert("wxapps", $wxapps);
                 foreach ($value['tag'] as $t => $g) {
                     $wxapp_tags[$t]['tag_id'] = $g['id'];
@@ -81,9 +86,12 @@ class Caiji
 
     }
 
-    private function getArticleList()
+    /**
+     * 采集知晓程序的文章
+     */
+    private function getArticle()
     {
-        $i=0;
+        $i = 0;
         do {
             $art_list = huoduan_get_html($this->art_url);
             $data_list = json_decode($art_list);
@@ -98,9 +106,13 @@ class Caiji
                     $post['post_title'] = $iterm->title;
                     $post['cover_image'] = $this->upImg2Qin($iterm->cover_image->image, null, 'post_cover');
                     $post['auth_id'] = 0;
-                    $post['content'] = $this->contProces($iterm->content);
+
+                    $data = $this->contProces($iterm->content);
+                    $post['content'] = $data['content'];
                     $post['post_type'] = 'article';
                     $post['tags'] = 0;
+                    $post['created_at'] = date('Y-m-d H:I:s');
+                    $post['updated_at'] = date('Y-m-d H:I:s');
                     $stat = $this->db->insert("posts", $post);
                     if (!$stat) echo '文章=>' . $iterm->title . '  入库失败...' . PHP_EOL;
                     else $i++;
@@ -118,19 +130,79 @@ class Caiji
 
     }
 
-    private function contProces($content)
+    private function file2DB()
     {
+        $files_list = files_list('/home/luffy/Downloads/关键词采集/百度新闻_微信小程序', 'txt', [], 2);
+        foreach ($files_list as $k => $v) {
+            $is_insert = $this->db->get("posts", 'id', ["post_title[~]" => $v['filename']]);
+            if ($is_insert) {
+                echo '文章=>' . $v['filename'] . '  已存在(id=' . $is_insert . ')...' . PHP_EOL;
+            } else {
+                echo '文章=>' . $v['filename'] . '  正在入库...' . PHP_EOL;
+                $post['post_title'] = $v['filename'];
+                $content = file_get_contents($v['path']);
+                $data = $this->contProces($content, 1);
+                $post['cover_image'] = $data['cover'];
+                $post['auth_id'] = 0;
+                $post['content'] = $data['content'];
+                $post['post_type'] = 'article';
+                $post['tags'] = 0;
+                $post['created_at'] = date('Y-m-d H:I:s');
+                $post['updated_at'] = date('Y-m-d H:I:s');
+                #var_dump($post);
+                $stat = $this->db->insert("posts", $post);
+                if (!$stat) echo '文章=>' . $v['filename'] . '  入库失败...' . PHP_EOL;
+            }
+        }
+    }
+
+    /**
+     * 文章内容处理[图片转七牛,内容替换]
+     * @param $content
+     * @param $cover 是否提取图片
+     * @return mixed
+     */
+    private function contProces($content, $cover = 0)
+    {
+        if (!isutf8($content)) {
+            $content = iconv('GB2312', 'UTF-8', $content);
+        }
         #$content=get_content_array($content,);
+        $data['cover'] = '';
         $preg = '/<img.*?src=[\"|\']?(.*?)[\"|\']?\s.*?>/i';
         preg_match_all($preg, $content, $imgArr);
-        foreach ($imgArr[0] as $key => $img) {
-            $rep_img = $this->upImg2Qin($imgArr[1][$key], null, 'post');
-            $content = str_replace($img, '<img src="' . $this->qiniu_url . $rep_img . '" />', $content);
+        if ($imgArr) {
+            foreach ($imgArr[0] as $key => $img) {
+                $rep_img = $this->upImg2Qin($imgArr[1][$key], null, 'post');
+                if ($cover && $key == $cover)
+                    $data['cover'] = $rep_img;
+                $content = str_replace($img, '<img src="' . $this->qiniu_url . $rep_img . '" />', $content);
+            }
         }
+        $data['content'] = $this->preg_rep($content);
+        return $data;
+    }
+
+    /**
+     * 数据替换
+     * @param $content
+     * @return mixed
+     */
+    private function preg_rep($content)
+    {
         $content = preg_replace('/\\n<p><strong>本文由知晓程序(.*)。<\/strong><\/p>\\n/isU', '', $content);
+        $content = preg_replace('/<p>\s+文章来源(.*)<\/p>/isU', '', $content);
+
         return $content;
     }
 
+    /**
+     * 七牛图片上传
+     * @param $img_url 图片地址
+     * @param null $key 指定key
+     * @param string $type 图片目录
+     * @return null|string
+     */
     private function upImg2Qin($img_url, $key = null, $type = 'icon')
     {
         $auth = new Auth($this->accessKey, $this->secretKey);
