@@ -49,30 +49,51 @@ function get_ip()
     return $ip;
 }
 
-
-function huoduan_get_html($url, $ref = 'http://www.baidu.com/')
+function rand_ip()
 {
-    $timeout = 30;
-    if (function_exists('curl_init')) {
-        $ip = get_ip();
+    $ip_long = array(
+        array('607649792', '608174079'), //36.56.0.0-36.63.255.255
+        array('1038614528', '1039007743'), //61.232.0.0-61.237.255.255
+        array('1783627776', '1784676351'), //106.80.0.0-106.95.255.255
+        array('2035023872', '2035154943'), //121.76.0.0-121.77.255.255
+        array('2078801920', '2079064063'), //123.232.0.0-123.235.255.255
+        array('-1950089216', '-1948778497'), //139.196.0.0-139.215.255.255
+        array('-1425539072', '-1425014785'), //171.8.0.0-171.15.255.255
+        array('-1236271104', '-1235419137'), //182.80.0.0-182.92.255.255
+        array('-770113536', '-768606209'), //210.25.0.0-210.47.255.255
+        array('-569376768', '-564133889'), //222.16.0.0-222.95.255.255
+    );
+    $rand_key = mt_rand(0, 9);
+    $ip = long2ip(mt_rand($ip_long[$rand_key][0], $ip_long[$rand_key][1]));
+    return $ip;
+}
 
+function http_request($url, $header = array(), $post = array(), $ref = 'http://www.baidu.com/')
+{
+
+    if (function_exists('curl_init')) {
+        $ip = rand_ip();
         #$cookie_file = ROOT_PATH . '/cache/' . md5($ref) . '.txt';
         $ch = curl_init();
-        $header = array(
-            'CLIENT-IP:' . $ip,
-            'X-FORWARDED-FOR:' . $ip,
-        );
+        if (count($header) == 0)
+            $header = ['CLIENT-IP' => $ip, 'X-FORWARDED-FOR' => $ip];
+        $headerArr = array();
+        foreach ($header as $n => $v) {
+            $headerArr[] = $n . ':' . $v;
+        }
+        $USER_AGENT = $_SERVER ['HTTP_USER_AGENT'] ? $_SERVER ['HTTP_USER_AGENT'] : 'Mozilla/5.0 (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)';
+
         curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_USERAGENT, $_SERVER ['HTTP_USER_AGENT']);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
+        curl_setopt($ch, CURLOPT_USERAGENT, $USER_AGENT);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headerArr);
         curl_setopt($ch, CURLOPT_REFERER, $ref);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        if (count($post))
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $post);
         //curl_setopt ( $ch, CURLOPT_FOLLOWLOCATION, 1 );
         #curl_setopt($ch, CURLOPT_COOKIEJAR, $cookie_file);
         $contents = curl_exec($ch);
         curl_close($ch);
-    } else if (ini_get('allow_url_fopen') == 1 || strtolower(ini_get('allow_url_fopen')) == 'on') {
-        $contents = @file_get_contents($url);
     } else {
         $contents = '';
     }
@@ -90,6 +111,7 @@ function isutf8($word)
         return false;
     }
 }
+
 function get_content_array($str, $start, $end, $option = 0)
 {
     $start_h = $this->str_zz($start);
@@ -134,20 +156,21 @@ function dir_list($path, $exts = '', $list = array())
     }
     return $list;
 }
-function files_list($path, $exts = '', $list = array(),$type=1)
+
+function files_list($path, $exts = '', $list = array(), $type = 1)
 {
     $path = dir_path($path);
     $files = glob($path . '*');
-    foreach ($files as $k=>$v) {
+    foreach ($files as $k => $v) {
         if (!$exts || preg_match("/\.($exts)/i", $v)) {
             //$v = iconv('GB2312','UTF-8',$v);
             $list[$k]['path'] = $v;
-            if($type==1)
+            if ($type == 1)
                 $list[$k]['filename'] = basename($v);
-            elseif($type==2)
-                $list[$k]['filename'] = basename($v,'.'.$exts);
+            elseif ($type == 2)
+                $list[$k]['filename'] = basename($v, '.' . $exts);
             if (is_dir($v)) {
-                $list[$k]['path']  = dir_list($v, $exts, $list);
+                $list[$k]['path'] = dir_list($v, $exts, $list);
             }
         }
     }

@@ -3,8 +3,8 @@ require_once 'function.php';
 require_once __DIR__ . '/vendor/autoload.php';
 use Qiniu\Auth;
 use Qiniu\Storage\BucketManager;
-
-#error_reporting(0);
+date_default_timezone_set('PRC');
+error_reporting(0);
 set_time_limit(0);
 
 class Caiji
@@ -14,24 +14,24 @@ class Caiji
     private $bucket;
     private $app_url;
     private $art_url;
+    private $token;
 
     public function __construct()
     {
         $this->accessKey = 'O0lkrGDG8Nel6rr1FbaRqR-efJtKiD6CNwNCUTis';
         $this->secretKey = 'NJSBbCXgaKfkBAaKx406GRiRfHiK2wMrXx4xaALD';
         $this->bucket = 'xiaochengxu';
+
         $this->domain = 'https://minapp.com';
-        $this->app_url = $this->domain . '/api/v3/trochili/miniapp/?limit=9000';
+        $this->app_url = $this->domain . '/api/v3/trochili/miniapp/?&limit=20&offset=0';
         $this->art_url = $this->domain . '/api/v3/trochili/post/?post_type=article&limit=20&offset=0';
-        $this->qiniu_url = 'http://oiyeeqrdv.bkt.clouddn.com/';
-        $this->db = new medoo([
-            'database_type' => 'mysql',
-            'database_name' => 'xiaochengxu',
-            'server' => '127.0.0.1',
-            'username' => 'root',
-            'password' => 'root',
-            'charset' => 'utf8'
-        ]);
+        $this->qiniu_url = 'http://cdn.wewx.cn/';
+
+        $this->basehost = 'http://wewx.app/';
+        $this->user = '3073721569@qq.com';
+        $this->pwd = 'juan@810';
+        $this->user_id = 2;
+        $this->token = $this->getToken($this->user, $this->pwd);
     }
 
     public function run()
@@ -39,50 +39,77 @@ class Caiji
         /*$url = 'http://media.ifanrusercontent.com/media/user_files/trochili/ad/07/ad07087fa027a86abf9402a3534259e6abadb792-3de1c6ad0258927562f01bdef5b470dc475cbbbb.jpg';
         $sat = $this->upImg2Qin($url);
         print_r($sat);*/
-        $this->file2DB();
 
+        $this->getApp($this->user_id);
+
+    }
+
+    private function getToken($username, $password)
+    {
+        $url = $this->basehost . 'oauth/token';
+        $post['grant_type'] = 'password';
+        $post['client_id'] = '1';
+        $post['client_secret'] = 'ZogtccW1oB6rQfM3UsXm12vigC2qtdg4wKEMApPf';
+        $post['username'] = $username;
+        $post['password'] = $password;
+        $post['scope'] = null;
+        $data = json_decode(http_request($url, [], $post), 1);
+        return $data;
+    }
+
+    private function postData($api, $token, $post)
+    {
+        $url = $this->basehost . 'api/v1/' . $api;
+        $header = ['Accept' => 'application/json', 'Authorization' => $token['token_type'] . ' ' . $token['access_token']];
+        $data = http_request($url, $header, $post);
+        return $data;
     }
 
     /**
      * 采集知晓程序app列表
      */
-    private function getApp()
+    private function getApp($user_id)
     {
-        $app_list = huoduan_get_html($this->app_url);
-        $data_list = json_decode($app_list, 1);
+        $i = 0;
+        do {
+            $app_list = http_request($this->app_url);
+            $data_list = json_decode($app_list, 1);
+            $is_next = $data_list['meta']['next'];
 
-        foreach ($data_list['objects'] as $key => $value) {
-            $is_insert = $this->db->get("wxapps", 'id', ["title[~]" => $value['name']]);
-            if ($is_insert) {
-                echo '应用=>' . $value['name'] . '  已存在(id=' . $is_insert . ')...' . PHP_EOL;
-            } else {
+            foreach (array_reverse($data_list['objects']) as $key => $value) {
+
                 echo '应用=>' . $value['name'] . '  正在入库...' . PHP_EOL;
-                $wxapps['user_id'] = 1;
+                $wxapps['user_id'] = $user_id;
                 $wxapps['title'] = $value['name'];
                 $wxapps['description'] = $value['description'];
-                $wxapps['rating'] = $value['overall_rating'];
-                $wxapps['status'] = 1;
-                $wxapp_icons['image'] = $this->upImg2Qin($value['icon']['image']);
-                $wxapp_qrcodes['image'] = $this->upImg2Qin($value['qrcode']['image'], null, 'qrcode');
-                $wxapp_qrcodes['created_at'] = date('Y-m-d H:I:s');
-                $wxapp_qrcodes['updated_at'] = date('Y-m-d H:I:s');
-                $wxapp_id = $this->db->insert("wxapps", $wxapps);
-                foreach ($value['tag'] as $t => $g) {
-                    $wxapp_tags[$t]['tag_id'] = $g['id'];
-                    $wxapp_tags[$t]['wxapp_id'] = $wxapp_id;
-                }
-                foreach ($value['screenshot'] as $s => $v) {
-                    $wxapp_screenshots[$s]['image'] = $this->upImg2Qin($v['image'], null, 'screenshot');
-                    $wxapp_screenshots[$s]['wxapp_id'] = $wxapp_id;
-                }
-                $wxapp_icons['wxapp_id'] = $wxapp_qrcodes['wxapp_id'] = $wxapp_id;
+                $wxapps['source'] = 'minapp';
+                $wxapps['source_id'] = $value['id'];
+                $wxapps['icon'] = $this->upImg2Qin($value['icon']['image']);
+                $wxapps['qrcode'] = $this->upImg2Qin($value['qrcode']['image'], null, 'qrcode');
+                $wxapps['tags'] = trim(array_reduce($value['tag'], function ($ids, $res) {
+                    return $ids . $res['name'] . ',';
+                }), ",");
 
-                $this->db->insert("wxapp_icons", $wxapp_icons);
-                $this->db->insert("wxapp_screenshots", $wxapp_screenshots);
-                $this->db->insert("wxapp_tags", $wxapp_tags);
-                $this->db->insert("wxapp_qrcodes", $wxapp_qrcodes);
+                $wxapps['screens']=trim(array_reduce($value['screenshot'], function ($ids, $res) {
+                    return $ids . $this->upImg2Qin($res['image'], null, 'screenshot') . ',';
+                }), ",");
+
+                #var_dump($wxapps);
+                $status = $this->postData('wxapp', $this->token, $wxapps);
+                $jsonp = json_decode($status, 1);
+                var_dump($status);
+                if (isset($jsonp['status']) && $jsonp['status'] == 'success')
+                    $i++;
+                else
+                    echo '应用=>' . $value['name'].'#'.$value['id'] . '  正在入库失败...' . PHP_EOL;
             }
-        }
+            if ($is_next != null)
+                $this->app_url = $this->domain . $is_next;
+            else
+                break;
+
+        } while (1);
+        echo '所有应用已采集入库，本次入库 【' . $i . '】  条记录...' . PHP_EOL;
 
     }
 
@@ -93,7 +120,7 @@ class Caiji
     {
         $i = 0;
         do {
-            $art_list = huoduan_get_html($this->art_url);
+            $art_list = http_request($this->art_url);
             $data_list = json_decode($art_list);
             $is_next = $data_list->meta->next;
             $iterms = $data_list->objects;
@@ -147,8 +174,8 @@ class Caiji
                 $post['content'] = $data['content'];
                 $post['post_type'] = 'article';
                 $post['tags'] = 0;
-                $post['created_at'] = date('Y-m-d H:I:s');
-                $post['updated_at'] = date('Y-m-d H:I:s');
+                $post['created_at'] = date('Y-m-d H:i:s');
+                $post['updated_at'] = date('Y-m-d H:i:s');
                 #var_dump($post);
                 $stat = $this->db->insert("posts", $post);
                 if (!$stat) echo '文章=>' . $v['filename'] . '  入库失败...' . PHP_EOL;
@@ -219,12 +246,3 @@ class Caiji
 
 $caiji = new Caiji();
 $caiji->run();
-
-
-
-
-
-
-
-
-	
