@@ -176,3 +176,20 @@ function files_list($path, $exts = '', $list = array(), $type = 1)
     }
     return $list;
 }
+
+function _pushMsg($msg)
+{
+    if (isset($_SERVER['SHELL'])) {
+        echo $msg . "\r\n";
+    } else {
+        echo $html = <<<EOF
+<div style="   
+    color:#795548;
+    text-shadow: 0.01em 0.01em 0.01em #999999;
+    font-size: 18px;
+    z-index:9999;
+    font-family: “Lato, PingFang SC, Microsoft YaHei, sans-serif”;
+    ">{$msg}</div>
+EOF;
+    }
+}

@@ -1,11 +1,7 @@
 <?php
-require_once 'function.php';
-require_once __DIR__ . '/vendor/autoload.php';
+
 use Qiniu\Auth;
 use Qiniu\Storage\BucketManager;
-date_default_timezone_set('PRC');
-error_reporting(0);
-set_time_limit(0);
 
 class Caiji
 {
@@ -18,38 +14,33 @@ class Caiji
 
     public function __construct()
     {
-        $this->accessKey = 'O0lkrGDG8Nel6rr1FbaRqR-efJtKiD6CNwNCUTis';
-        $this->secretKey = 'NJSBbCXgaKfkBAaKx406GRiRfHiK2wMrXx4xaALD';
-        $this->bucket = 'xiaochengxu';
+        $this->accessKey = $_ENV['QINIU_AK'];
+        $this->secretKey = $_ENV['QINIU_SK'];
+        $this->bucket = $_ENV['QINIU_BK'];
 
-        $this->domain = 'https://minapp.com';
+        $this->domain = $_ENV['Source_URL'];
         $this->app_url = $this->domain . '/api/v3/trochili/miniapp/?&limit=20&offset=0';
         $this->art_url = $this->domain . '/api/v3/trochili/post/?post_type=article&limit=20&offset=0';
-        $this->qiniu_url = 'http://cdn.wewx.cn/';
+        $this->qiniu_url = $_ENV['CDN'];
 
-        $this->basehost = 'http://wewx.app/';
-        $this->user = '3073721569@qq.com';
-        $this->pwd = 'juan@810';
-        $this->user_id = 2;
+        $this->basehost = ($_ENV["DEBUG"]) ? $_ENV['APP_URL_DEV'] : $_ENV['APP_URL'];
+        $this->user = $_ENV['USER'];
+        $this->pwd = $_ENV['PWD'];
+        $this->user_id = $_ENV['USER_ID'];
         $this->token = $this->getToken($this->user, $this->pwd);
     }
 
     public function run()
     {
-        /*$url = 'http://media.ifanrusercontent.com/media/user_files/trochili/ad/07/ad07087fa027a86abf9402a3534259e6abadb792-3de1c6ad0258927562f01bdef5b470dc475cbbbb.jpg';
-        $sat = $this->upImg2Qin($url);
-        print_r($sat);*/
-
         $this->getApp($this->user_id);
-
     }
 
     private function getToken($username, $password)
     {
         $url = $this->basehost . 'oauth/token';
-        $post['grant_type'] = 'password';
-        $post['client_id'] = '1';
-        $post['client_secret'] = 'ZogtccW1oB6rQfM3UsXm12vigC2qtdg4wKEMApPf';
+        $post['grant_type'] = $_ENV['Grant_Type'];
+        $post['client_id'] = $_ENV['Client_Id'];
+        $post['client_secret'] = $_ENV['Client_Secret'];
         $post['username'] = $username;
         $post['password'] = $password;
         $post['scope'] = null;
@@ -78,7 +69,7 @@ class Caiji
 
             foreach (array_reverse($data_list['objects']) as $key => $value) {
 
-                echo '应用=>' . $value['name'] . '  正在入库...' . PHP_EOL;
+                _pushMsg('应用=> ' . $value['name'] . '  正在入库...');
                 $wxapps['user_id'] = $user_id;
                 $wxapps['title'] = $value['name'];
                 $wxapps['description'] = $value['description'];
@@ -90,26 +81,25 @@ class Caiji
                     return $ids . $res['name'] . ',';
                 }), ",");
 
-                $wxapps['screens']=trim(array_reduce($value['screenshot'], function ($ids, $res) {
+                $wxapps['screens'] = trim(array_reduce($value['screenshot'], function ($ids, $res) {
                     return $ids . $this->upImg2Qin($res['image'], null, 'screenshot') . ',';
                 }), ",");
-
-                #var_dump($wxapps);
                 $status = $this->postData('wxapp', $this->token, $wxapps);
                 $jsonp = json_decode($status, 1);
-                var_dump($status);
-                if (isset($jsonp['status']) && $jsonp['status'] == 'success')
+                if (isset($jsonp['status']) && $jsonp['status'] == 'success') {
+                    _pushMsg($jsonp['status']);
                     $i++;
-                else
-                    echo '应用=>' . $value['name'].'#'.$value['id'] . '  正在入库失败...' . PHP_EOL;
+                } else
+                    _pushMsg('应用=>' . $value['name'] . '#' . $value['id'] . '  入库失败...');
             }
             if ($is_next != null)
                 $this->app_url = $this->domain . $is_next;
             else
                 break;
-
+            sleep(2);
+            _pushMsg('休息2秒');
         } while (1);
-        echo '所有应用已采集入库，本次入库 【' . $i . '】  条记录...' . PHP_EOL;
+        _pushMsg('所有应用已采集入库，本次入库 【' . $i . '】  条记录...');
 
     }
 
