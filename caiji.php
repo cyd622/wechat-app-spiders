@@ -69,7 +69,7 @@ class Caiji
 
             foreach (array_reverse($data_list['objects']) as $key => $value) {
 
-                _pushMsg('应用=> ' . $value['name'] . '  正在入库...',0);
+                _pushMsg('应用=> ' . $value['name'] . '  正在入库...', 0);
                 $wxapps['user_id'] = $user_id;
                 $wxapps['title'] = $value['name'];
                 $wxapps['description'] = $value['description'];
@@ -87,17 +87,18 @@ class Caiji
                 $status = $this->postData('wxapp', $this->token, $wxapps);
                 $jsonp = json_decode($status, 1);
                 if (isset($jsonp['status']) && $jsonp['status'] == 'success') {
-                    _pushMsg(' 状态：'.$jsonp['status']);
+                    _pushMsg(' 状态：' . $jsonp['status']);
                     $i++;
                 } else
                     _pushMsg(' 状态：fail');
+                sleep(1);
             }
             if ($is_next != null)
                 $this->app_url = $this->domain . $is_next;
             else
                 break;
-            sleep(2);
-            _pushMsg('休息2秒');
+            sleep($_ENV['Sleep']);
+            _pushMsg('休息' . $_ENV['Sleep'] . '秒');
         } while (1);
         _pushMsg('所有应用已采集入库，本次入库 【' . $i . '】  条记录...');
 
