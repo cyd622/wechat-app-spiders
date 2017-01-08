@@ -1,5 +1,5 @@
 <?php
-
+require_once 'init.php';
 use Qiniu\Auth;
 use Qiniu\Storage\BucketManager;
 
@@ -19,7 +19,7 @@ class Caiji
         $this->bucket = $_ENV['QINIU_BK'];
 
         $this->domain = $_ENV['Source_URL'];
-        $this->app_url = $this->domain . '/api/v3/trochili/miniapp/?&limit=20&offset=0';
+        $this->app_url = $this->domain . '/api/v3/trochili/miniapp/?&limit=2000';
         $this->art_url = $this->domain . '/api/v3/trochili/post/?post_type=article&limit=20&offset=0';
         $this->qiniu_url = $_ENV['CDN'];
 
@@ -69,7 +69,7 @@ class Caiji
 
             foreach (array_reverse($data_list['objects']) as $key => $value) {
 
-                _pushMsg('应用=> ' . $value['name'] . '  正在入库...');
+                _pushMsg('应用=> ' . $value['name'] . '  正在入库...',0);
                 $wxapps['user_id'] = $user_id;
                 $wxapps['title'] = $value['name'];
                 $wxapps['description'] = $value['description'];
@@ -87,10 +87,10 @@ class Caiji
                 $status = $this->postData('wxapp', $this->token, $wxapps);
                 $jsonp = json_decode($status, 1);
                 if (isset($jsonp['status']) && $jsonp['status'] == 'success') {
-                    _pushMsg($jsonp['status']);
+                    _pushMsg(' 状态：'.$jsonp['status']);
                     $i++;
                 } else
-                    _pushMsg('应用=>' . $value['name'] . '#' . $value['id'] . '  入库失败...');
+                    _pushMsg(' 状态：fail');
             }
             if ($is_next != null)
                 $this->app_url = $this->domain . $is_next;

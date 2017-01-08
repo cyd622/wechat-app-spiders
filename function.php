@@ -81,7 +81,7 @@ function http_request($url, $header = array(), $post = array(), $ref = 'http://w
         foreach ($header as $n => $v) {
             $headerArr[] = $n . ':' . $v;
         }
-        $USER_AGENT = $_SERVER ['HTTP_USER_AGENT'] ? $_SERVER ['HTTP_USER_AGENT'] : 'Mozilla/5.0 (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)';
+        $USER_AGENT = isset($_SERVER ['HTTP_USER_AGENT']) ? $_SERVER ['HTTP_USER_AGENT'] : 'Mozilla/5.0 (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)';
 
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_USERAGENT, $USER_AGENT);
@@ -177,10 +177,10 @@ function files_list($path, $exts = '', $list = array(), $type = 1)
     return $list;
 }
 
-function _pushMsg($msg)
+function _pushMsg($msg, $tab = true)
 {
     if (isset($_SERVER['SHELL'])) {
-        echo $msg . "\r\n";
+        echo $tab ? $msg . "\r\n" : $msg;
     } else {
         echo $html = <<<EOF
 <div style="   
