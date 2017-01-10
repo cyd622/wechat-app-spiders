@@ -63,7 +63,7 @@ class BaseSpider
     {
         $url = $this->basehost . 'api/v1/' . $api;
         $header = ['Accept' => 'application/json', 'Authorization' => $token['token_type'] . ' ' . $token['access_token']];
-        $data = http_requestc($url, $header, $post);
+        $data = http_request($url, $header, $post);
         return $data;
     }
 
