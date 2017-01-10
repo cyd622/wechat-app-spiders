@@ -68,7 +68,8 @@ function rand_ip()
     return $ip;
 }
 
-function http_request($url, $header = array(), $post = array(), $ref = 'http://www.baidu.com/')
+
+function http_request($url, $header = array(), $post = array(), $ref = 'https://minapp.com/miniapp/')
 {
 
     if (function_exists('curl_init')) {
@@ -76,7 +77,7 @@ function http_request($url, $header = array(), $post = array(), $ref = 'http://w
         #$cookie_file = ROOT_PATH . '/cache/' . md5($ref) . '.txt';
         $ch = curl_init();
         if (count($header) == 0)
-            $header = ['CLIENT-IP' => $ip, 'X-FORWARDED-FOR' => $ip];
+            $header = ['Host' => 'minapp.com', 'Referer' => 'https://minapp.com/miniapp/',];
         $headerArr = array();
         foreach ($header as $n => $v) {
             $headerArr[] = $n . ':' . $v;
@@ -95,7 +96,7 @@ function http_request($url, $header = array(), $post = array(), $ref = 'http://w
         $contents = curl_exec($ch);
         curl_close($ch);
     } else {
-        $contents = '';
+        $contents = 'a';
     }
     return $contents;
 

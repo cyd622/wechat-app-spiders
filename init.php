@@ -14,7 +14,9 @@ $Loader->toEnv();
 
 # 调试
 if ($_ENV["DEBUG"]) {
-    error_reporting(E_ALL);
+    #error_reporting(E_ALL);
 } else {
-    error_reporting(0);
+    #error_reporting(0);
 }
+
+require_once 'BaseSpider.php';
