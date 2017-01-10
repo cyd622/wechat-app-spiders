@@ -61,7 +61,7 @@ class BaseSpider
      */
     public function postData($api, $token, $post)
     {
-        $url = $this->basehost . 'api/v1/' . $api;
+        echo $url = $this->basehost . 'api/v1/' . $api;
         $header = ['Accept' => 'application/json', 'Authorization' => $token['token_type'] . ' ' . $token['access_token']];
         $data = http_request($url, $header, $post);
         return $data;

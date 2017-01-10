@@ -20,7 +20,12 @@ class Minapp extends BaseSpider
 
     public function run()
     {
-        $this->getApp($this->user_id);
+        $urls=$this->getApp($this->user_id);
+        if(count($urls)){
+            $rs=$this->postBaidu($urls);
+            parent::debug("百度提交返回信息：\r\n". $rs);
+        }
+
     }
 
     /**
@@ -29,6 +34,7 @@ class Minapp extends BaseSpider
     private function getApp($user_id)
     {
         $i = 0;
+        $post_urls=array();
         do {
 
             $app_list = http_request($this->spider_url);
@@ -55,11 +61,13 @@ class Minapp extends BaseSpider
                 }), ",");
                 $status = $this->postData('wxapp', $this->token, $wxapps);
                 $jsonp = json_decode($status, 1);
+
                 if (isset($jsonp['status']) && $jsonp['status'] == 'success') {
                     $stat = $jsonp['status'];
+                    $post_urls[]=$this->basehost.'xiaochengxu/'.$jsonp['data']['id'].'/'.$jsonp['data']['name'];
                     $i++;
                 } else {
-                    $stat = 'fail';
+                    $stat = $status;
                 }
                 _pushMsg(' 状态：' . $stat);
                 sleep(1);
@@ -74,6 +82,7 @@ class Minapp extends BaseSpider
             _pushMsg('休息' . $_ENV['Sleep'] . '秒');
         } while (1);
         _pushMsg('所有应用已采集入库，本次入库 【' . $i . '】  条记录...');
+        return $post_urls;
 
     }
 
