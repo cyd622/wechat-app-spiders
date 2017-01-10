@@ -63,8 +63,8 @@ class Minapp extends BaseSpider
                 }
                 _pushMsg(' 状态：' . $stat);
                 sleep(1);
-                debug('应用=> ' . $value['name'] . '  正在入库...状态：' . $stat);
-                debug('返回', $jsonp);
+                parent::debug('应用=> ' . $value['name'] . '  正在入库...状态：' . $stat);
+                parent::debug('返回', $jsonp);
             }
             if ($is_next != null)
                 $this->app_url = $this->domain . $is_next;
