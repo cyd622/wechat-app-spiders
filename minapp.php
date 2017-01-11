@@ -14,7 +14,7 @@ class Minapp extends BaseSpider
     public function __construct()
     {
         parent::__construct();
-        $this->logfile = 'Minapp.log';
+        $this->logfile = 'Minapp' . date('Y-m-d') . '.log';
         $this->domain = 'https://minapp.com';
         $this->spider_url = $this->domain . '/api/v3/trochili/miniapp/?&limit=1000';
     }
@@ -24,9 +24,8 @@ class Minapp extends BaseSpider
         $urls = $this->getApp($this->user_id);
         if (count($urls)) {
             $rs = $this->postBaidu($urls);
-            parent::debug("百度提交返回信息：\r\n" . $rs);
+            $this->debug("百度提交返回信息：\r\n" . $rs);
         }
-
     }
 
     /**
@@ -43,8 +42,8 @@ class Minapp extends BaseSpider
         $is_next = $data_list['meta']['next'];
 
         foreach (array_reverse($data_list['objects']) as $key => $value) {
-
             _pushMsg('应用=> ' . $value['name'] . '  正在入库...', 0);
+
             $wxapps['user_id'] = $user_id;
             $wxapps['title'] = $value['name'];
             $wxapps['description'] = $value['description'];
@@ -71,8 +70,8 @@ class Minapp extends BaseSpider
             }
             _pushMsg(' 状态：' . $stat);
             sleep(2);
-            parent::debug('应用=> ' . $value['name'] . '  正在入库...状态：' . $stat);
-            parent::debug('返回', $jsonp);
+            $this->debug('应用=> ' . $value['name'] . '  正在入库...状态：' . $stat);
+            $this->debug('返回', $jsonp);
         }
         if ($is_next != null)
             $this->app_url = $this->domain . $is_next;

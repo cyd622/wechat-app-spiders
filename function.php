@@ -71,13 +71,16 @@ function rand_ip()
 
 function http_request($url, $header = array(), $post = array(), $ref = 'https://minapp.com/miniapp/')
 {
-
     if (function_exists('curl_init')) {
         $ip = rand_ip();
-        #$cookie_file = ROOT_PATH . '/cache/' . md5($ref) . '.txt';
         $ch = curl_init();
         if (count($header) == 0)
-            $header = ['Host' => 'minapp.com', 'Referer' => 'https://minapp.com/miniapp/',];
+            $header = [
+                'Host' => 'minapp.com',
+                'Referer' => 'https://minapp.com/miniapp/',
+                'CLIENT-IP' => $ip,
+                'X-FORWARDED-FOR' => $ip,
+            ];
         $headerArr = array();
         foreach ($header as $n => $v) {
             $headerArr[] = $n . ':' . $v;
@@ -96,7 +99,7 @@ function http_request($url, $header = array(), $post = array(), $ref = 'https://
         $contents = curl_exec($ch);
         curl_close($ch);
     } else {
-        $contents = 'a';
+        $contents = '';
     }
     return $contents;
 
@@ -180,11 +183,22 @@ function files_list($path, $exts = '', $list = array(), $type = 1)
 
 function down_img($url, $filepath)
 {
+    $ip = rand_ip();
     $ref = 'https://minapp.com/miniapp/';
-    $header = array("Connection: Keep-Alive", "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", "Pragma: no-cache", "Accept-Language: zh-Hans-CN,zh-Hans;q=0.8,en-US;q=0.5,en;q=0.3", "User-Agent: Mozilla/5.0 (Windows NT 5.1; rv:29.0) Gecko/20100101 Firefox/29.0");
+    $header = [
+        'Host' => 'minapp.com',
+        'Referer' => 'https://minapp.com/miniapp/',
+        'CLIENT-IP' => $ip,
+        'X-FORWARDED-FOR' => $ip,
+    ];
+    foreach ($header as $n => $v) {
+        $headerArr[] = $n . ':' . $v;
+    }
+    $USER_AGENT = isset($_SERVER ['HTTP_USER_AGENT']) ? $_SERVER ['HTTP_USER_AGENT'] : 'Mozilla/5.0 (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)';
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
+    curl_setopt($ch, CURLOPT_USERAGENT, $USER_AGENT);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headerArr);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
     curl_setopt($ch, CURLOPT_ENCODING, 'gzip,deflate');
