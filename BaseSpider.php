@@ -8,7 +8,7 @@
 
 
 use Qiniu\Auth;
-use Qiniu\Storage\BucketManager;
+use Qiniu\Storage\UploadManager;
 
 class BaseSpider
 {
@@ -27,7 +27,7 @@ class BaseSpider
         $this->accessKey = $_ENV['QINIU_AK'];
         $this->secretKey = $_ENV['QINIU_SK'];
         $this->bucket = $_ENV['QINIU_BK'];
-
+        $this->filePath = 'Upload/images/';
         $this->qiniu_url = $_ENV['CDN'];
 
         $this->basehost = ($_ENV["DEBUG"]) ? $_ENV['APP_URL_DEV'] : $_ENV['APP_URL'];
@@ -61,7 +61,7 @@ class BaseSpider
      */
     public function postData($api, $token, $post)
     {
-        echo $url = $this->basehost . 'api/v1/' . $api;
+        $url = $this->basehost . 'api/v1/' . $api;
         $header = ['Accept' => 'application/json', 'Authorization' => $token['token_type'] . ' ' . $token['access_token']];
         $data = http_request($url, $header, $post);
         return $data;
@@ -77,14 +77,20 @@ class BaseSpider
     public function upImg2Qin($img_url, $key = null, $type = 'icon')
     {
         $auth = new Auth($this->accessKey, $this->secretKey);
-        $bmgr = new BucketManager($auth);
-        $key = ($key == '' || $key == null) ? $type . '/' . md5($img_url) . ".jpg" : $key;
-        list($ret, $err) = $bmgr->fetch($img_url, $this->bucket, $key);
-        if ($err !== null) {
-            return $img_url;
-        } else {
-            return $key;
+        $token = $auth->uploadToken($this->bucket);
+        $filename = down_img($img_url, $this->filePath . $type . '/');
+        $filePath = $this->filePath . $type . '/' . $filename;
+        if ($filename) {
+            $key = ($key == '' || $key == null) ? $type . '/' . $filename : $key;
+            $uploadMgr = new UploadManager();
+            list($ret, $err) = $uploadMgr->putFile($token, $key, $filePath);
+            if ($err !== null) {
+                return $key;
+            } else {
+                return $ret['key'];
+            }
         }
+
     }
 
     /**
