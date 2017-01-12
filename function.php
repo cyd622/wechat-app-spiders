@@ -69,15 +69,15 @@ function rand_ip()
 }
 
 
-function http_request($url, $header = array(), $post = array(), $ref = 'https://minapp.com/miniapp/')
+function http_request($url, $header = array(), $post = array(), $host = 'minapp.com', $ref = 'https://minapp.com/miniapp/')
 {
     if (function_exists('curl_init')) {
         $ip = rand_ip();
         $ch = curl_init();
-        if (count($header) == 0)
+        if (!$header)
             $header = [
-                'Host' => 'minapp.com',
-                'Referer' => 'https://minapp.com/miniapp/',
+                'Host' => $host,
+                'Referer' => $ref,
                 'CLIENT-IP' => $ip,
                 'X-FORWARDED-FOR' => $ip,
             ];
@@ -86,7 +86,6 @@ function http_request($url, $header = array(), $post = array(), $ref = 'https://
             $headerArr[] = $n . ':' . $v;
         }
         $USER_AGENT = isset($_SERVER ['HTTP_USER_AGENT']) ? $_SERVER ['HTTP_USER_AGENT'] : 'Mozilla/5.0 (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)';
-
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_USERAGENT, $USER_AGENT);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headerArr);
@@ -118,8 +117,8 @@ function isutf8($word)
 
 function get_content_array($str, $start, $end, $option = 0)
 {
-    $start_h = $this->str_zz($start);
-    $end_h = $this->str_zz($end);
+    $start_h = str_zz($start);
+    $end_h = str_zz($end);
     preg_match_all('/' . $start_h . '(.+?)' . $end_h . '/is', $str, $match);
 
     $count = count($match[1]);
@@ -136,6 +135,32 @@ function get_content_array($str, $start, $end, $option = 0)
         }
     }
     return $arr;
+}
+
+function str_zz($string)
+{
+    $string = str_replace('/', '\/', $string);
+    $string = str_replace('$', '\$', $string);
+    $string = str_replace('*', '\*', $string);
+    $string = str_replace('"', '\"', $string);
+    $string = str_replace("'", "\'", $string);
+    $string = str_replace('+', '\+', $string);
+    $string = str_replace('^', '\^', $string);
+    $string = str_replace('[', '\[', $string);
+    $string = str_replace(']', '\]', $string);
+    $string = str_replace('|', '\|', $string);
+    $string = str_replace('{', '\{', $string);
+    $string = str_replace('}', '\}', $string);
+    $string = str_replace('%', '\%', $string);
+    $string = str_replace('-', '\-', $string);
+    $string = str_replace('(', '\(', $string);
+    $string = str_replace(')', '\)', $string);
+    $string = str_replace('>', '\>', $string);
+    $string = str_replace('<', '\<', $string);
+    $string = str_replace('?', '\?', $string);
+    $string = str_replace('.', '\.', $string);
+    $string = str_replace('!', '\!', $string);
+    return $string;
 }
 
 function dir_path($path)
@@ -179,51 +204,6 @@ function files_list($path, $exts = '', $list = array(), $type = 1)
         }
     }
     return $list;
-}
-
-function down_img($url, $filepath)
-{
-    $ip = rand_ip();
-    $ref = 'https://minapp.com/miniapp/';
-    $header = [
-        'Host' => 'minapp.com',
-        'Referer' => 'https://minapp.com/miniapp/',
-        'CLIENT-IP' => $ip,
-        'X-FORWARDED-FOR' => $ip,
-    ];
-    foreach ($header as $n => $v) {
-        $headerArr[] = $n . ':' . $v;
-    }
-    $USER_AGENT = isset($_SERVER ['HTTP_USER_AGENT']) ? $_SERVER ['HTTP_USER_AGENT'] : 'Mozilla/5.0 (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)';
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_USERAGENT, $USER_AGENT);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $headerArr);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-    curl_setopt($ch, CURLOPT_ENCODING, 'gzip,deflate');
-    curl_setopt($ch, CURLOPT_REFERER, $ref);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-    $content = curl_exec($ch);
-    $curlinfo = curl_getinfo($ch);
-    curl_close($ch);
-
-    if ($curlinfo['http_code'] == 200) {
-        if ($curlinfo['content_type'] == 'image/jpeg') {
-            $exf = '.jpg';
-        } else if ($curlinfo['content_type'] == 'image/png') {
-            $exf = '.png';
-        } else if ($curlinfo['content_type'] == 'image/gif') {
-            $exf = '.gif';
-        }
-        $filename = md5($url) . $exf;
-        if (!file_exists($filepath . $filename))
-            $res = file_put_contents($filepath . $filename, $content);
-        return $filename;
-    } else {
-        return false;
-    }
-
 }
 
 function _pushMsg($msg, $tab = true)

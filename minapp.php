@@ -17,6 +17,9 @@ class Minapp extends BaseSpider
         $this->logfile = 'Minapp' . date('Y-m-d') . '.log';
         $this->domain = 'https://minapp.com';
         $this->spider_url = $this->domain . '/api/v3/trochili/miniapp/?&limit=1000';
+        $this->host = 'minapp.com';
+        $this->ref = 'https://minapp.com/miniapp/';
+
     }
 
     public function run()
