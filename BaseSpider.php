@@ -81,7 +81,7 @@ class BaseSpider
         $auth = new Auth($this->accessKey, $this->secretKey);
         $token = $auth->uploadToken($this->bucket);
         $filename = $this->down_img($img_url, $this->filePath . $type . '/', $this->host, $this->ref);
-        $filePath = $this->filePath . $type . '/' . $filename;
+       echo $filePath = $this->filePath . $type . '/' . $filename;
         if ($filename) {
             $key = ($key == '' || $key == null) ? $type . '/' . $filename : $key;
             $uploadMgr = new UploadManager();
@@ -118,7 +118,7 @@ class BaseSpider
 
     public function down_img($url, $filepath, $host, $ref)
     {
-        $ip = rand_ip();
+        $ip = get_ip();
         $header = [
             'Host' => $host,
             'Referer' => $ref,
@@ -128,6 +128,8 @@ class BaseSpider
         foreach ($header as $n => $v) {
             $headerArr[] = $n . ':' . $v;
         }
+        print_r($url);
+        print_r($header);
         $USER_AGENT = isset($_SERVER ['HTTP_USER_AGENT']) ? $_SERVER ['HTTP_USER_AGENT'] : 'Mozilla/5.0 (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)';
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -138,7 +140,7 @@ class BaseSpider
         curl_setopt($ch, CURLOPT_ENCODING, 'gzip,deflate');
         curl_setopt($ch, CURLOPT_REFERER, $ref);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        $content = curl_exec($ch);
+       echo $content = curl_exec($ch);
         $curlinfo = curl_getinfo($ch);
         curl_close($ch);
         if ($curlinfo['http_code'] == 200) {
